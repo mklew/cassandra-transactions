@@ -1,0 +1,49 @@
+# Cassandra tables required for events.
+
+CREATE TABLE events (
+    time_slice text,        # part of timestamp + token, partitioning key
+    event_group_id uuid,    # events grouped by common group id, sorting key
+    event_id uuid,          # identification of event, TODO is sequence number enough?
+    executed boolean,       # true if this event has been executed. TODO could be represented as some enum, like event_state
+    sequence_number int,
+    execution_nodes list<text>, # nodes on which event can be executed.
+                                # Values are actor paths to which event can be sent for execution
+                                # actor paths are obtained by mapping partitioning id to physical node to actor ref
+    # TODO actual modification data.
+    PRIMARY KEY (time_slice, event_group_id)
+);
+
+
+# metadata to be in different column family to facilitate caching
+
+CREATE TABLE cursor_meta (
+    id text,                # fixed hardcoded name like: "EVENT-CURSOR"
+    current_time_slice text,
+    current_large_time_slice text, # ID of next_events from which search for
+                                   # next time_slices has to start after all events
+                                   # from current time_slice have been processed.
+)
+
+
+# This goes in normal column family
+
+# this table is going to be read time_slice by time_slice
+
+If current time_slice is: 2015-06-05 14:26
+Then large_slice for this time_slice is for example: 2015-06-05 14:2
+Which means that is will group all the time_slices within 10 minute window.
+
+When processing of all events for time_slice 2015-06-05 14:26 is finished, then
+next_events is read by key 2015-06-05 14:2 and first next_time_slice is taken.
+When it is finished, then second to next time_slice is taken until all time_slices in row
+2015-06-05 14:2 have been processed.
+Meta column needs to be updated with: current large_time_slice
+
+If time_slice is in tens of minutes and current time_slice is:
+Then next read row has id: 2015-06-05 14:3 and so on.
+
+CREATE TABLE next_events (
+    large_slice text,       # current time slice
+    next_time_slice text,
+    PRIMARY KEY (time_slice, next_time_slice)
+)
