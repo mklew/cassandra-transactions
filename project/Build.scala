@@ -1,9 +1,8 @@
 import sbt.Keys._
 import sbt._
-import sbtrelease.ReleasePlugin._
 
-object ProjectBuild extends Build {  
-  val scalaV = "2.11.4"
+object ProjectBuild extends Build {
+  val scalaV = "2.11.5"
 
   val defaultScalacOptions = Seq()
 
