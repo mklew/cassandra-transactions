@@ -1,2 +1,1 @@
-libraryDependencies +=
-  "com.typesafe.akka" %% "akka-actor" % "2.3.11"
+version := "0.0.1-SNAPSHOT"
