@@ -18,28 +18,15 @@
 
 package mklew.cts
 
-import _root_.akka.actor.Props
-import com.typesafe.scalalogging.StrictLogging
-import mklew.cts.cluster.ClusterSeedObserver
+import akka.actor.ActorSystem
+import com.typesafe.config.ConfigFactory
 
 /**
  * @author Marek Lewandowski <marek.m.lewandowski@gmail.com>
  * @since 13/06/15
  */
-object Boot extends App with StrictLogging with CtsModule
+trait CtsModule
 {
-
-  logger.info(
-    """
-      |  ==============================================
-      |
-      |     Cassandra Transactions seed node starts
-      |
-      |  ==============================================
-    """.stripMargin)
-
-  // Create an Akka system
-  val system = actorSystem
-  // Create an actor that handles cluster domain events
-  system.actorOf(Props[ClusterSeedObserver], name = "clusterObserver")
+  val config = ConfigFactory.load("cluster-app.conf")
+  lazy val actorSystem = ActorSystem("ClusterSystem", config)
 }

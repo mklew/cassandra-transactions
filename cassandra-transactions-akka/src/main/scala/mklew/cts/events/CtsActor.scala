@@ -16,17 +16,17 @@
  * limitations under the License.
  */
 
-package mklew.cts.akka
+package mklew.cts.events
 
-import akka.actor.ActorSystem
-import com.typesafe.config.ConfigFactory
+import akka.actor.{ActorLogging, Actor}
 
 /**
  * @author Marek Lewandowski <marek.m.lewandowski@gmail.com>
- * @since 13/06/15
+ * @since 09/07/15
  */
-trait CtsModule
+trait CtsActor extends ActorLogging
 {
-  val config = ConfigFactory.load()
-  lazy val actorSystem = ActorSystem("ClusterSystem", config)
+  this: Actor =>
 }
+
+trait BaseCtsActor extends Actor with CtsActor

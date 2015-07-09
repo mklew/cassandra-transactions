@@ -16,30 +16,19 @@
  * limitations under the License.
  */
 
-package mklew.cts
+package mklew.cts.events
 
-import _root_.akka.actor.Props
-import com.typesafe.scalalogging.StrictLogging
-import mklew.cts.cluster.ClusterSeedObserver
+import akka.actor.Actor.Receive
 
 /**
  * @author Marek Lewandowski <marek.m.lewandowski@gmail.com>
- * @since 13/06/15
+ * @since 09/07/15
  */
-object Boot extends App with StrictLogging with CtsModule
+class EventExecutor extends BaseCtsActor
 {
-
-  logger.info(
-    """
-      |  ==============================================
-      |
-      |     Cassandra Transactions seed node starts
-      |
-      |  ==============================================
-    """.stripMargin)
-
-  // Create an Akka system
-  val system = actorSystem
-  // Create an actor that handles cluster domain events
-  system.actorOf(Props[ClusterSeedObserver], name = "clusterObserver")
+  override def receive: Receive = {
+    case x =>
+      log.info(s"event executor received $x")
+      unhandled(x)
+  }
 }
