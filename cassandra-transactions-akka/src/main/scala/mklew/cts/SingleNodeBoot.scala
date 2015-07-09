@@ -21,6 +21,7 @@ package mklew.cts
 import akka.actor.{ActorSystem, Props}
 import com.typesafe.scalalogging.StrictLogging
 import mklew.cts.events.{NodeReceptionist, NodeManager}
+import mklew.cts.lookup.{LookupProtocol, SingleNodeLookup}
 
 /**
  * @author Marek Lewandowski <marek.m.lewandowski@gmail.com>
@@ -48,6 +49,9 @@ object SingleNodeBoot extends App with StrictLogging with CtsSingleModule
 
     logger.debug("spinning up actor of class: " + classOf[NodeReceptionist].getSimpleName)
     val receptionist = system.actorOf(Props[NodeReceptionist], name = "Receptionist")
+
+    logger.debug("spinning up actor of class: " + classOf[SingleNodeLookup].getSimpleName)
+    system.actorOf(Props[SingleNodeLookup], name = LookupProtocol.name)
 
     import mklew.cts.events.NodeProtocol._
 

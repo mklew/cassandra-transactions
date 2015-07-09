@@ -16,21 +16,20 @@
  * limitations under the License.
  */
 
-package mklew.cts.events
+package mklew.cts.lookup
 
-import akka.actor.Actor.Receive
-import akka.actor.Identify
+import akka.actor.ActorRef
 
 /**
  * @author Marek Lewandowski <marek.m.lewandowski@gmail.com>
  * @since 09/07/15
  */
-class EventExecutor extends BaseCtsActor
+object LookupProtocol
 {
-  override def receive: Receive = {
-    case Identify => sender ! Identify
-    case x =>
-      log.info(s"event executor received $x")
-      unhandled(x)
-  }
+  val name = "Lookup"
+
+  val path = s"/user/$name"
+
+  case object LookupEventExecutor
+  case class EventExecutorRef(actorRef: ActorRef)
 }

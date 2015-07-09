@@ -16,21 +16,34 @@
  * limitations under the License.
  */
 
-package mklew.cts.events
+package mklew.cts.lookup
 
-import akka.actor.Actor.Receive
-import akka.actor.Identify
+import akka.actor._
+import mklew.cts.events.BaseCtsActor
+import mklew.cts.lookup.LookupProtocol.LookupEventExecutor
 
 /**
+ * Simply resolves actorRef by path
+ *
  * @author Marek Lewandowski <marek.m.lewandowski@gmail.com>
  * @since 09/07/15
  */
-class EventExecutor extends BaseCtsActor
+class SingleNodeLookup extends BaseCtsActor
 {
-  override def receive: Receive = {
-    case Identify => sender ! Identify
-    case x =>
-      log.info(s"event executor received $x")
-      unhandled(x)
+  override def receive: Receive =
+  {
+    case LookupEventExecutor =>
+      log.debug("received " + LookupEventExecutor)
+      val thatSender: ActorRef = sender()
+      val s = context.actorOf(Props(classOf[DoLookupAndRespond], thatSender))
+      context.actorSelection("/user/NodeManager/EventExecutor").tell(Identify, s)
+  }
+}
+
+class DoLookupAndRespond(respondTo: ActorRef) extends Actor {
+  override def receive: Actor.Receive = {
+    case Identify =>
+      respondTo ! LookupProtocol.EventExecutorRef(sender())
+      self ! PoisonPill
   }
 }

@@ -16,21 +16,15 @@
  * limitations under the License.
  */
 
-package mklew.cts.events
-
-import akka.actor.Actor.Receive
-import akka.actor.Identify
+package mklew.cts.lookup
 
 /**
+ *  TODO this is more advanced version of lookup which follows current EventExecutor in the cluster.
+ *
  * @author Marek Lewandowski <marek.m.lewandowski@gmail.com>
  * @since 09/07/15
  */
-class EventExecutor extends BaseCtsActor
+class ClusterLookup
 {
-  override def receive: Receive = {
-    case Identify => sender ! Identify
-    case x =>
-      log.info(s"event executor received $x")
-      unhandled(x)
-  }
+
 }

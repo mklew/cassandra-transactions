@@ -38,7 +38,6 @@ class SmokeTest(_system: ActorSystem) extends TestKit(_system) with ImplicitSend
     TestKit.shutdownActorSystem(system)
   }
 
-
   "A Single Node Boot" must {
 
     SingleNodeBoot.startup(system)

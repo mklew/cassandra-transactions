@@ -36,7 +36,6 @@ class NodeManager extends BaseCtsActor
   var eventExecutor: Option[ActorRef] = None
   var eventHandler: Option[ActorRef] = None
 
-
   override def receive: Receive =
   {
     case Identify => sender ! Identify
