@@ -1,7 +1,8 @@
 # Cassandra tables required for events.
 
 CREATE TABLE events (
-    time_slice text,        # part of timestamp + token, partitioning key
+    time_slice text,        # part of timestamp, partitioning key
+    token int,              # random token with known bounds, partitioning key
     event_group_id uuid,    # events grouped by common group id, sorting key
     event_id uuid,          # identification of event, TODO is sequence number enough?
     executed boolean,       # true if this event has been executed. TODO could be represented as some enum, like event_state
@@ -9,8 +10,11 @@ CREATE TABLE events (
     execution_nodes list<text>, # nodes on which event can be executed.
                                 # Values are actor paths to which event can be sent for execution
                                 # actor paths are obtained by mapping partitioning id to physical node to actor ref
-    # TODO actual modification data.
-    PRIMARY KEY (time_slice, event_group_id)
+    cql_and_data text,          # json serialized CQL and Data required for it
+    after_successfull_execution_ref text,      # actor ref to send message after successful execution
+    on_rollback_ref text,           # actor ref to send message if error occurs
+    on_group_committed_ref text,    # actor ref to send message when whole group has been successfully executed and committed
+    PRIMARY KEY ((time_slice, token), event_group_id, event_id)
 );
 
 
