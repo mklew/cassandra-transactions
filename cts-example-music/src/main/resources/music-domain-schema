@@ -1,0 +1,84 @@
+# Cassandra tables required for music domain.
+
+CREATE KEYSPACE music
+         WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : 3 };
+
+USE music;
+
+# duration_in_s         duration of song in seconds
+
+CREATE TABLE songs (
+    album_name text,
+    name text,
+    song_order int,
+    genre_name text,
+    duration text,
+    PRIMARY KEY (album_name, song_order, name)
+);
+
+CREATE TYPE album_song (
+    song_order int,
+    name text
+);
+
+CREATE TABLE albums (
+    name text PRIMARY KEY,
+    artist_name text,
+    genre_name text,
+    songs list<frozen <album_song>>
+);
+
+# counting albums will be example of expression
+# counting songs will be example of expression
+# total_recordings_length_in_s will be example of function / custom behaviour
+
+CREATE TABLE artists (
+    name text PRIMARY KEY,
+    albums_count int,
+    songs_count int,
+    total_recordings_length_in_s int,
+    albums_names list<text>
+);
+
+CREATE TABLE genres (
+   name text,
+   artist_name text,
+   album_name text,
+   PRIMARY KEY (name, artist_name, album_name)
+);
+
+INSERT INTO music.artists (name, albums_count, songs_count, total_recordings_length_in_s)
+VALUES ('Muse', 0, 0, 0);
+
+INSERT INTO music.songs (album_name, song_order, name, genre_name, duration) VALUES ('SnowBiz', 1,	'Sunburn', 'rock', '3:54');
+INSERT INTO music.songs (album_name, song_order, name, genre_name, duration) VALUES ('SnowBiz', 2,	'Muscle Museum', 'rock', '4:23');
+INSERT INTO music.songs (album_name, song_order, name, genre_name, duration) VALUES ('SnowBiz', 3,	'Fillip', 'rock', '4:01');
+INSERT INTO music.songs (album_name, song_order, name, genre_name, duration) VALUES ('SnowBiz', 4,	'Falling Down', 'rock', '4:33');
+INSERT INTO music.songs (album_name, song_order, name, genre_name, duration) VALUES ('SnowBiz', 5,	'Cave', 'rock', '4:46');
+INSERT INTO music.songs (album_name, song_order, name, genre_name, duration) VALUES ('SnowBiz', 6,	'Showbiz', 'rock', '5:16');
+INSERT INTO music.songs (album_name, song_order, name, genre_name, duration) VALUES ('SnowBiz', 7,	'Unintended', 'rock', '3:57');
+INSERT INTO music.songs (album_name, song_order, name, genre_name, duration) VALUES ('SnowBiz', 8,	'Uno', 'rock', '3:37');
+INSERT INTO music.songs (album_name, song_order, name, genre_name, duration) VALUES ('SnowBiz', 9,	'Sober', 'rock', '4:04');
+INSERT INTO music.songs (album_name, song_order, name, genre_name, duration) VALUES ('SnowBiz', 10,	'Escape', 'rock', '3:31');
+INSERT INTO music.songs (album_name, song_order, name, genre_name, duration) VALUES ('SnowBiz', 11,	'Overdue', 'rock', '2:26');
+INSERT INTO music.songs (album_name, song_order, name, genre_name, duration) VALUES ('SnowBiz', 12,	'Hate This & I''ll Love You', 'rock', '5:09');
+
+INSERT INTO music.genres (name, artist_name, album_name) VALUES ('rock', 'Muse', 'SnowBiz');
+
+INSERT INTO music.albums (name, artist_name, genre_name, songs) VALUES ('Snowbiz', 'Muse', 'rock',
+[{ name : 'Sunburn',  song_order : 1 },
+ { name : 'Muscle Museum',  song_order : 2 },
+ { name : 'Fillip',  song_order : 3 },
+ { name : 'Falling Down',  song_order : 4 },
+ { name : 'Cave',  song_order : 5 },
+ { name : 'Showbiz',  song_order : 6 },
+ { name : 'Unintended',  song_order : 7 },
+ { name : 'Uno',  song_order : 8 },
+ { name : 'Sober',  song_order : 9 },
+ { name : 'Escape',  song_order : 10 },
+ { name : 'Overdue',  song_order : 11 },
+ { name : 'Hate This & I''ll Love You',  song_order : 12 }]);
+
+UPDATE music.artists SET albums_names = albums_names + [ 'SnowBiz' ] WHERE name = 'Muse';
+
+UPDATE music.artists SET albums_count = 1, songs_count = 12, total_recordings_length_in_s = 3312 WHERE name = 'Muse';

@@ -7,7 +7,7 @@ object ProjectBuild extends Build {
   val defaultScalacOptions = Seq()
 
   val defaultLibraryDependencies = Seq(
-    
+
     )
 
   val defaultSettings = Defaults.defaultSettings ++ Seq(
@@ -17,14 +17,19 @@ object ProjectBuild extends Build {
 
   lazy val cassandraTransactions = Project("cassandra-transactions", file(".")) aggregate(cassandraTransactionsAkka, cassandraTransactionsClient, cassandraTransactionsCore)
 
-  lazy val cassandraTransactionsCore = Project("cassandra-transactions-core", 
-    file("cassandra-transactions-core"), settings = defaultSettings) 
+  lazy val cassandraTransactionsCore = Project("cassandra-transactions-core",
+    file("cassandra-transactions-core"), settings = defaultSettings)
 
   lazy val cassandraTransactionsAkka = Project("cassandra-transactions-akka",
     file("cassandra-transactions-akka"),
     settings = defaultSettings
     ).dependsOn(cassandraTransactionsCore % "compile->compile")
 
-  lazy val cassandraTransactionsClient = Project("cassandra-transactions-client", 
+  lazy val cassandraTransactionsClient = Project("cassandra-transactions-client",
     file("cassandra-transactions-client"), settings = defaultSettings).dependsOn(cassandraTransactionsAkka % "compile->compile")
+
+  lazy val ctsExampleMusic = Project("cts-example-music",
+                                     file("cts-example-music"),
+                                     settings = defaultSettings).
+    dependsOn(cassandraTransactionsClient % "compile->compile")
 }

@@ -18,9 +18,12 @@
 
 package mklew.cts
 
+import java.util.UUID
+
 import akka.actor.{ActorRef, Actor, ActorSystem}
 import akka.testkit.{ImplicitSender, TestKit}
 import com.datastax.driver.core.Statement
+import com.datastax.driver.core.querybuilder.QueryBuilder
 import org.scalatest.{Matchers, WordSpecLike}
 
 import scala.concurrent.Future
@@ -102,6 +105,13 @@ class PublicApiDesignTest(_system: ActorSystem) extends TestKit(_system) with Im
    * Before execution of the event it will READ all columns,
    * SAVE them on the side as Map[Key, Value]
    * UPDATE in case of rollback
+   *
+   * TODO Investigate if this is possible just by looking at statement (probably update) itself.
+   *
+   * Restore semantics:
+   *   If Update then restore means having data which was before UPDATE -> Another Update statement with previous data
+   *   If Insert then restore means having no data -> Delete inserted row
+   *
    */
   case object RestoreDataEventStrategy
 
@@ -163,5 +173,95 @@ class PublicApiDesignTest(_system: ActorSystem) extends TestKit(_system) with Im
     val selfAddress: String = ??? // self actor ref to string or something
 
     session ! EventTransaction(eventGroup, selfAddress, selfAddress)
+  }
+
+  /**
+   * Domain: Music
+   *
+   * Entities:
+   *   Song
+   *   Album
+   *   Artists
+   *   Genre
+   *
+   *   Use cases:
+   *    Use case 1:  Add new album of some artist Xxx Yyy
+   *       uses case: Find or Create artist
+   *
+   *       1. Find or create artist
+   *       2. Create Id for Album
+   *       3. Create Ids for songs
+   *       4. Insert Album with song ids and names and with artist id
+   *       5. Insert Songs
+   *
+   *       Steps 4 & 5 could run concurrently
+   *
+   *
+   *    Use case 2: Find or Create artist by full name
+   *
+   *      Artist name is Xxxx
+   *
+   *      1. Get up to first 2 letters from artist name
+   *      2. Create key: up to first 2 letters, artist name
+   *      3. Query for artist
+   *      4. If exists then return him
+   *      5. If doesn't exist then insert new artist and return his ID
+   *
+   *
+   *
+   *    II Update
+   *
+   *
+   *
+   *      Complex scenario
+   *
+   *      1. Query for something ( this data could be changing and we care about state before next insert)
+   *      2. Insert data based on that query
+   *      3. Query something else
+   *      4. Calculate something based on previous query results.
+   *      5. Update something with calculated value
+   *
+   *      How to pass data between events?
+   *
+   *      1. Query for something (this data could be changing and we care about state before next insert)
+   *      2. Insert data based on that query
+   *
+   *      Concrete example:
+   *
+   *      Query all songs
+   *      Insert new song with number := total of songs + 1
+   *
+   *      SELECT * FROM SONGS WHERE ALBUM_ID = 62c36092-82a1-3a00-93d1-46196ee77204;
+   *
+   *
+   *      Passing result of Query to event:
+   *        - expression like: result.one().getString("song_name")
+   *        - function name
+   *            where function is in library accessible by cassandra node AND function has type
+   *               F: ResultSet -> Map[key: String, ByteString]
+   *        - callback to user's actor which receives Map[eventName: String, result: ResultSet]
+   *             and returns Map[key: String, ByteString ???]
+   *
+   *
+   *       Example:
+   *
+   *
+   *
+   *
+   *      To do that query needs to be executed and query results have to be passed into next event
+   *
+   *
+   */
+  object AlbumsAndSongsDomainExample {
+    case class Song(name: String, order: Int, genre: String, albumId: UUID)
+    case class SongInAlbum(name: String, songId: UUID)
+    case class Album(name: String, artist: String, artistId: UUID)
+
+    val albumId = "62c36092-82a1-3a00-93d1-46196ee77204"
+    val queryForCountOfAllSongsInAlbum: Statement = QueryBuilder.select().countAll().from("MUSIC", "SONGS").where(QueryBuilder.eq("album_id", albumId))
+
+
+
+
   }
 }
