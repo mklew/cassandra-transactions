@@ -1,6 +1,7 @@
 val akkaV = "2.3.12"
 
 libraryDependencies ++= Seq(
+  "org.scala-lang.modules" %% "scala-pickling" % "0.10.1",
   "com.typesafe.akka" %% "akka-actor" % akkaV,
   "com.typesafe.akka" %% "akka-cluster" % akkaV,
   "com.typesafe.akka" %% "akka-slf4j" % akkaV,
