@@ -1,5 +1,9 @@
 # Cassandra Transactions (CTS) - specification
 
+## General ideas
+
+_CTS_ will be created in similar mindset as Akka which is designed for distributed environment and local execution is done by means of optimization. Similary here, many areas i.e. callbacks to actors can be optimized to avoid going through network.
+
 ## Events
 
 _Events_ are statements that are executed at some time in the future. (when EventExecutor executes them).
@@ -8,10 +12,75 @@ Event:
 
 * belongs to single event group
 * can be executed
-* can be rolled back
+* its execution is either successful or failed -- callback actor decides.
+* is rolled back in case of failure
 * events can have dependencies on each other
+* dependent events execute only when event executed successfully
+
+### Event Success or failure
+
+What does it mean for event to be successfuly executed?
+
+Sometimes it is easy to say, but not in general case.
+Event is executed successfully if:
+
+- no exception was thrown
+- row was inserted
+- affected rows match with expected number i.e. 
+
+		= N || >= N || <= N 
+- arbitrary logic decides	- let's say we have _User_ and success is only when _user.active is true_
+
+In general it is nearly impossible to think of all the cases of what does it mean to successfully execute. 
+
+Therefore deciding about success or failure should be done by user with means to optimize for simple case.
+
+		<SuccessFail checks> := <SuccessFail_check> | <SuccessFail_check> <SuccessFail checks>
+		<SuccessFail_check> := <arbitrary> | <primitive>
+		<primitive> := <NO_EXCEPTION> | <AFFECTED_ROWS_EQUAL(N)> | <AFFECTED_ROWS_LESS_THAN(N)> | <IS_TRUE(EXPRESSION)> | ...
+		<EXPRESSION> := path.to.column
+		
+		arbitrary := actor ref
+
+There can be __many success checks__ and success is only when all are successful.
+
+#### Arbitrary success check
+		
+Message to _actor ref_ is sent and response whether this event was successfully executed is required.
+
+Extras: ACKing, timeouts
+
+Answer from success check is asynchrnous. Execution of subsequent events can be either:
+ 
+  - blocked until decision arrives.
+  - proceed assuming succces with rollback if answer decides about failure. TODO need to think if this is complex.
+
+
+#### Preconditions
+
+  Success or failure checking allows to model Event preconditions. 
+  Use Case: Grant bonus to customer only if is active and has bought 10 items.
+  
+  This can be splitted into several events with dependnecies between them. Grant bonus (UPDATE/INSERT) will depend on two events, one query with success if active = true and one query for items.
 
 ### Rollback mechanics
+
+Rollback happens when event execution has been decided to be failure.
+
+Rollback is more likely to be deterministic although could be custom arbitrary piece of code.
+
+|  Statement     |  Rollback | Comment                                  |
+|----------------|----------- | ----------------------------------------- |
+|  INSERT Values |   DELETE  | Many values (rows) ca                    |
+|  UPDATE TTL    |  UPDATE   | __PROBLEM__ Need to know previous TTL    |
+|  DELETE row    |  INSERT ROW | __PROBLEM__ Need to have all data from row |
+|  DELETE rows    |  INSERT ROWS | __PROBLEM__ Need to have all data from all rows |
+|  DELETE columns from rows    |  INSERT columns to ROWS | __BIG PROBLEM__ Needs to know column values plus needs to know which column value corresponds to which row |
+ 
+__TODO__ need to check if Query Results object can be serialized to json (column definitions are required for rollback)
+
+
+TODO is restore always possible?
 
 Possible rollback scenarios:
 
@@ -151,9 +220,11 @@ Trigger actions - could submit another event group doing something else. Could b
 
 Pre hook could start up some actors that could potentially be required for further processing on event group, but that requires built in hook type and props for actor.
 
-__TODO__ check if Props can be persisted. It is case class so it is serializable so in theory it can be.
+Props are serializable.
+If on _CTS_ side deserialization has all classes available (by using custom class loader) then _Props_ can be deserialized and actor can be created.
 
-__TODO__ if _CTS_ has to create actor out of this Props then actor class as well as any other arguments must be available on _CTS_ classpath, which means that _CTS_ has to load some JAR on startup which has all the classes.
+##### Custom classloader 
+can look exactly like the one used for Cassandra triggers.
 
 
 #### Implementation detail:
@@ -180,6 +251,10 @@ __TODO__ for prototype let's just investigate how it is done with triggers.
 **Crazy idea:** If there could be event's that could load jars, that would resolve dependnecy and load it (and unload older version) then data would evolve with code without worrying about migrations, because until some time version v1.0.0 is used and then after some event in Event Stream version v2.0.0 is used.
       
        
+       
+## Modeling of common use cases using events
+
+### Delete many rows using prior Select Query
  
 
          
