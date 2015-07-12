@@ -180,7 +180,7 @@ There are __2 events__:
 There is __1 event dependency__ _QueryEvent_ depends on _UpdateEvent_  
 Concretely _QueryEvent_ has `EventDependency(name = "UpdateEvent", recipe = None)`  
 
-_QueryEvent_ has __ctsEventSuccess recipe__ which is expression `count = 1`
+_QueryEvent_ has __ctsEventSuccess recipe__ which is expression `count == 1`
 
 
 #### Execution algorithm
@@ -207,7 +207,7 @@ And there is precondition `user.is_active == true`
 
 It could be modeled differently like:
 `SELECT COUNT(*) FROM users WHERE user_id = 10 AND is_active = true`
-And precondition `count = 1`
+And precondition `count == 1`
 
 #### Representation on events level
 
