@@ -82,3 +82,109 @@ INSERT INTO music.albums (name, artist_name, genre_name, songs) VALUES ('Snowbiz
 UPDATE music.artists SET albums_names = albums_names + [ 'SnowBiz' ] WHERE name = 'Muse';
 
 UPDATE music.artists SET albums_count = 1, songs_count = 12, total_recordings_length_in_s = 3312 WHERE name = 'Muse';
+
+DELETE genre_name FROM music.songs WHERE album_name = 'SnowBiz';
+
+DELETE genre_name FROM music.songs WHERE album_name = 'SnowBiz' AND song_order IN (1,4,5) AND name IN ('Sunburn', 'Cave', 'Escape');
+UPDATE music.songs SET genre_name = 'rock' WHERE album_name = 'SnowBiz';
+
+DELETE FROM music.songs WHERE album_name = 'SnowBiz';
+
+INSERT INTO music.artists (name, albums_count, songs_count, total_recordings_length_in_s)
+VALUES ('Moby2', 1, 10, 2312);
+
+INSERT INTO music.artists (name, albums_count, songs_count, total_recordings_length_in_s)
+VALUES ('Moby', 12, 51, 12);
+
+# Example of Delete multiple rows statement
+DELETE FROM music.artists WHERE name IN ('Moby', 'Moby2');
+
+# 1. Before rollback needs query => Replace DELETE with SELECT * and rest stays the same.
+# Set only not null columns
+DELETE FROM music.artists WHERE name = 'Moby2';
+UPDATE music.artists SET albums_count = 1, songs_count = 52, total_recordings_length_in_s = 2312 WHERE name = 'Moby2';
+
+# Example of Delete multiple columns from multiple rows statement
+DELETE albums_count, songs_count FROM music.artists WHERE name IN ('Moby', 'Moby2');
+
+# 1. Before rollback needs query => Replace DELETE with SELECT
+
+SELECT albums_count, songs_count FROM music.artists WHERE name IN ('Moby', 'Moby2');
+
+ albums_count | songs_count
+--------------+-------------
+           12 |          51
+            1 |          10
+
+# 2. Correlate rows with primary keys in IN ( key1, key2 )
+
+    First row => 'Moby'
+    Second row => 'Moby2'
+    Third row => ... and so on
+
+# 3. Write several update statements, for each IN transform it into
+
+  Preserve table name
+
+  FROM music.artists => UPDATE music.artists
+
+  Take column definitions from select result: albums_count, songs_count
+   and rewrite them with values from query
+
+   SET albums_count = 12, songs_count = 51
+   SET albums_count = 1, songs_count = 10
+
+  WHERE name IN ('Moby', 'Moby2') => transforms to
+                                        WHERE name = 'Moby'
+                                        WHERE name = 'Moby2'
+
+  Produce update statements by joining parts:
+
+                                         UPDATE music.artists SET albums_count = 12, songs_count = 51 WHERE name = 'Moby';
+                                         UPDATE music.artists SET albums_count = 1, songs_count = 10 WHERE name = 'Moby2';
+
+SELECT albums_count, songs_count FROM music.artists WHERE name IN ('Moby', 'Moby2');
+
+# ROLLBACK UPDATE single row STATEMENT
+
+UPDATE music.artists SET albums_count = 30 WHERE name = 'Moby';
+
+# 1. QUERY all updated columns
+  Extract table from Update: music.artists
+  Extract SET columns from table: albums_count
+  Copy WHERE part as is.
+
+  Rewrite it as:
+  SELECT albums_count FROM music.artists WHERE name = 'Moby';
+
+# 2. Save results
+
+# 3. Rollback:
+
+
+# ROLLBACK UPDATE multiple rows STATEMENT
+
+CREATE TABLE stuff (
+  id int,
+  name text,
+  last text,
+  number int,
+  PRIMARY KEY (id, name, last)
+);
+
+INSERT INTO stuff (id, name, last, number) VALUES (1, 'foo', 'a', 100);
+INSERT INTO stuff (id, name, last, number) VALUES (1, 'foo', 'b', 100);
+INSERT INTO stuff (id, name, last, number) VALUES (1, 'foo', 'c', 250);
+INSERT INTO stuff (id, name, last, number) VALUES (1, 'bar', 'b', 200);
+INSERT INTO stuff (id, name, last, number) VALUES (1, 'baz', 'c', 200);
+INSERT INTO stuff (id, name, last, number) VALUES (1, 'zaz', 'd', 400);
+INSERT INTO stuff (id, name, last, number) VALUES (2, 'kotek', 'f',50);
+INSERT INTO stuff (id, name, last, number) VALUES (2, 'mis', 'g', 30);
+INSERT INTO stuff (id, name, last, number) VALUES (3, 'koala', 'z', 1);
+
+
+UPDATE stuff SET number = 5 WHERE id = 1 and name IN ('foo', 'bar');
+SELECT * FROM stuff WHERE id = 1 AND name = 'foo';
+SELECT * FROM stuff WHERE id = 1 AND name = 'foo' AND last IN ('a', 'c');
+
+UPDATE stuff SET number = 5 WHERE id = 1 AND name = 'foo' AND last IN ('a', 'c');
