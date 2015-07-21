@@ -272,6 +272,87 @@ Execution steps:
 15. Event group has been executed, algorithm stops.
 
 
+## Storing events and data on same nodes
+
+General idea is to:
+
+- __Event stream__ -> keep trace of all events in single table containing only very lightweight rows.
+- __Data on target node__ -> keep heavy part of event, that is data, on same node as target row that event modifies
+- be able to reference heavy part from lightweight part
+- execution of heavy events happens on same node as the data being modified therefore it should be fast(er, than passing data by network to all replicas.)
+
+Cassandra distributes data to nodes according to calculated token from key.
+
+One optimization can be to split _Event_ into:
+
+1. _EventMeta_ - has just metadata about Event. It is important that it does not have any heavy data, so it will be in bytes not in megabytes.
+2. _EventData_ - mainly has data, plus all other necessary things (not important at the moment)
+
+Optimization is for:
+
+- network bandwidth -- data required for statement already is in the same node as this statement modifies
+- execution time -- executing node will do local modification + propagate that to replicas.
+
+### How to have events and data on same nodes
+__(This idea of having data and events on same node has been verified by manual test using local cluster of 4 nodes)__
+
+![Token Ring](docs/token-ring.png)
+
+* Cassandra stores data according to token
+* Keyspace name does not matter _checked that manually_
+* Table name does not matter _checked that manually_
+
+So all it takes is that event's partition key has to be equal as data it modifies.
+Consequences:
+
+* Table for events has to be created which has exact same primary key as data it acts upon. 
+* Events's table primary key is actually extended by at least _eventId_ as another clustering column.
+
+Example: Imagine `Users` table in `myapp` keyspace. Primary key choice is stupid here, but that's not the point in that example.
+
+_Users_ have compound partitioning key which constitues of `first_name` and `last_name`.
+
+```
+CREATE TABLE users (
+    first_name text,
+    last_name text,
+    phone text,
+    email text,
+    PRIMARY KEY ((first_name, last_name))
+)
+```
+
+Events table for users _could be_ generated automatically and would look like this:
+
+__Note: That table can be created in different keyspace to not pollute with application's data__
+
+```
+CREATE TABLE users_events (
+	 first_name text,
+	 last_name text,
+	 event_id timeuuid,
+	 # data of some type ... and rest not important at that time
+	 PRIMARY KEY ((first_name, last_name), event_id))
+) 
+```
+
+Events table will always have same PRIMARY KEY extended with _event_id_ as last clustering column. 
+
+In this way, partitioning key is the same, therefore token is the same, therefore nodes are the same. (checked that on cluster of 4 nodes)
+
+### Lightweight events stream table
+
+_EventMeta_ would probably need to be stored altogether somewhere in the cluster. That _EventMeta_ would be processed by _EventExecutor_.
+
+In order to find _EventData_ from _EventMeta_, meta would have to store:
+
+- table name for that event
+- whole key (with clustering columns) as blob
+- event_id
+
+__Note: required data needs further investigation but it has be possible to do. It just has to have enough data to find EventData row__
+
+
 ## TODO refactor sections below
 
 #### Event in general
