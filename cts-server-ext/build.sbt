@@ -16,11 +16,5 @@ Keys.fork in run := true
 
 mainClass in (Compile, run) := Some("mklew.cts.Boot")
 
-assemblyMergeStrategy in assembly := {
-  case "META-INF/io.netty.versions.properties"                 => MergeStrategy.first
-//  case PathList(ps @ _*) if ps.last =>
-  case x =>
-    val oldStrategy = (assemblyMergeStrategy in assembly).value
-    oldStrategy(x)
-}
+net.virtualvoid.sbt.graph.Plugin.graphSettings
 

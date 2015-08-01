@@ -1,11 +1,13 @@
 import sbt.Keys._
 import sbt._
 import sbtassembly.AssemblyKeys._
+import sbtassembly.MergeStrategy
 
 object ProjectBuild extends Build {
   val scalaV = "2.11.6"
 
   lazy val assemblyToC = TaskKey[Unit]("assembly-to-c", "Assembly fat jar and copy it over to Cassandra's lib directory")
+  lazy val toC = TaskKey[Unit]("to-c", "Assembly fat jar and copy it over to Cassandra's lib directory")
 
   val defaultScalacOptions = Seq(
 
@@ -24,6 +26,18 @@ object ProjectBuild extends Build {
       IO.copyFile(f, targetFile)
 
       log.info("Assembly to Cassandra copied jar to: " + targetFile.getPath)
+    },
+
+    toC := {
+            assemblyToC.value
+    },
+
+    assemblyMergeStrategy in assembly := {
+      case "META-INF/io.netty.versions.properties"                 => MergeStrategy.first
+      //  case PathList(ps @ _*) if ps.last =>
+      case x =>
+        val oldStrategy = (assemblyMergeStrategy in assembly).value
+        oldStrategy(x)
     }
   )
 
@@ -32,11 +46,15 @@ object ProjectBuild extends Build {
     libraryDependencies ++= defaultLibraryDependencies
   ) ++ Seq(scalaVersion := scalaV)
 
-  lazy val cts = Project("cts", file(".")) aggregate(ctsServerExt, ctsClientExt, ctsCore)
+  lazy val cts = Project("cts", file(".")) aggregate(ctsServerExt, ctsClientExt, ctsCore, ctsAkkaDeps, ctsGraph)
+
+  lazy val ctsAkkaDeps = Project("cts-akka-deps", file("cts-akka-deps"), settings = defaultSettings ++ taskDefs)
 
   lazy val ctsCore = Project("cts-core",
     file("cts-core"), settings = defaultSettings)
 
+  lazy val ctsGraph = Project("cts-graph",
+    file("cts-graph"), settings = defaultSettings)
 
   lazy val ctsServerExt = Project("cts-server-ext",
     file("cts-server-ext"),
