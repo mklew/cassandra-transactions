@@ -7,8 +7,6 @@ object ProjectBuild extends Build {
 
   lazy val assemblyToC = TaskKey[Unit]("assembly-to-c", "Assembly fat jar and copy it over to Cassandra's lib directory")
 
-  lazy val assemblyWip = TaskKey[Unit]("assembly-wip", "Work in progress task")
-
   val defaultScalacOptions = Seq(
 
   )
@@ -26,30 +24,6 @@ object ProjectBuild extends Build {
       IO.copyFile(f, targetFile)
 
       log.info("Assembly to Cassandra copied jar to: " + targetFile.getPath)
-    },
-
-    assemblyWip <<= (baseDirectory, name) map {(baseDir: File, n: String) =>
-      val targetFile = "/Users/mareklewandowski/Magisterka/reactive-transactions/cassandra-transactions/cassandra-transactions-akka/src/main/scala/mklew/cts/cluster/ClusterSeedObserver.scala"
-      val nF = baseDir / ".." / ".." / "cassandra" / "lib"
-      val fileList = IO.listFiles(nF)
-      println("nf " + nF)
-      println("listing files")
-
-      println(List(fileList:_*))
-
-      println("listing files with filter")
-
-      val filteredFileList  = IO.listFiles(nF, "compress-*")
-
-      println(List(filteredFileList:_*))
-
-
-      val sourceFile: File = new File(targetFile)
-      IO.copyFile(sourceFile, nF / sourceFile.getName)
-
-
-      val filteredFileList2  = IO.listFiles(nF, "Cluster-*")
-      println(List(filteredFileList2:_*))
     }
   )
 
