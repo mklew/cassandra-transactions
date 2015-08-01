@@ -16,22 +16,12 @@
  * limitations under the License.
  */
 
-package mklew.cts.events
+package mklew.cts
 
-import akka.actor.ActorRef
+import java.nio.ByteBuffer
 
 /**
  * @author Marek Lewandowski <marek.m.lewandowski@gmail.com>
  * @since 09/07/15
  */
-class EventHandler(val eventExecutor: ActorRef, val eventPersister: ActorRef) extends BaseCtsActor
-{
-  override def receive: Receive = {
-    case x =>
-      log.info(s"event handler received $x")
-      unhandled(x)
-  }
-}
-
-
-
+case class EventQuery(cql: String, values: List[ByteBuffer])

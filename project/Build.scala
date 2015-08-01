@@ -30,25 +30,26 @@ object ProjectBuild extends Build {
   val defaultSettings = Defaults.defaultSettings ++ Seq(
     scalacOptions ++= defaultScalacOptions,
     libraryDependencies ++= defaultLibraryDependencies
-  ) ++ Seq(scalaVersion := scalaV) ++ taskDefs
+  ) ++ Seq(scalaVersion := scalaV)
 
-  lazy val cassandraTransactions = Project("cassandra-transactions", file(".")) aggregate(cassandraTransactionsAkka, cassandraTransactionsClient, cassandraTransactionsCore)
+  lazy val cts = Project("cts", file(".")) aggregate(ctsServerExt, ctsClientExt, ctsCore)
 
-  lazy val cassandraTransactionsCore = Project("cassandra-transactions-core",
-    file("cassandra-transactions-core"), settings = defaultSettings)
+  lazy val ctsCore = Project("cts-core",
+    file("cts-core"), settings = defaultSettings)
 
-  lazy val cassandraTransactionsAkka = Project("cassandra-transactions-akka",
-    file("cassandra-transactions-akka"),
-    settings = defaultSettings
-    ).dependsOn(cassandraTransactionsCore % "compile->compile")
 
-  lazy val cassandraTransactionsClient = Project("cassandra-transactions-client",
-    file("cassandra-transactions-client"), settings = defaultSettings).dependsOn(cassandraTransactionsAkka % "compile->compile")
+  lazy val ctsServerExt = Project("cts-server-ext",
+    file("cts-server-ext"),
+    settings = defaultSettings ++ taskDefs
+    ).dependsOn(ctsCore % "compile->compile")
+
+  lazy val ctsClientExt = Project("cts-client-ext",
+    file("cts-client-ext"), settings = defaultSettings).dependsOn(ctsServerExt % "compile->compile")
 
   lazy val ctsExampleMusic = Project("cts-example-music",
                                      file("cts-example-music"),
                                      settings = defaultSettings).
-    dependsOn(cassandraTransactionsClient % "compile->compile")
+    dependsOn(ctsClientExt % "compile->compile")
 
 
 }

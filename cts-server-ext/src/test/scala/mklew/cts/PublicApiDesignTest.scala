@@ -56,16 +56,16 @@ class PublicApiDesignTest(_system: ActorSystem) extends TestKit(_system) with Im
 
   case class PartitioningMetaData(metaData: Map[TableName, List[ParitionKeyName]])
 
-  case class Event(eventId: Option[String], st: Statement, dependencies: Set[Event])
+  case class Event(eventId: Option[String], st: String, dependencies: Set[Event], mappedValues: Map[Any, Any]) // TODO need to work on types
   {
     def dependsOn(e: Event): Event = this.copy(dependencies = dependencies + e)
   }
 
   object Event
   {
-    def create(st: Statement): Event = Event(None, st, Set())
+    def create(st: Statement): Event = Event(None, st.toString, Set(), Map())
 
-    def create(eventId: String, st: Statement): Event = Event(Some(eventId), st, Set())
+    def create(eventId: String, st: Statement): Event = Event(Some(eventId), st.toString, Set(), Map())
   }
 
   case class EventGroup(events: Set[Event])
@@ -143,6 +143,7 @@ class PublicApiDesignTest(_system: ActorSystem) extends TestKit(_system) with Im
       TableName("SONGS") -> List(ParitionKeyName("ALBUM"))
     ))
 
+  import system.dispatcher
   val ctsCluster: CtsCluster = CtsCluster.Builder.create().withPartitioningMetaData(metaDataExample).build()
   val sessionF: Future[Any] = ctsCluster ? Connect
 
@@ -159,7 +160,7 @@ class PublicApiDesignTest(_system: ActorSystem) extends TestKit(_system) with Im
     val insertEvent = Event.create("insert new user", insertStmt)
     val updateEvent = Event.create("update user counter", updateStmt)
     val anotherUpdateEvent = Event.create("update statistics", anotherUpdateStmt)
-    val independentUpdateEvent = Event.create(independentUpdateEvent)
+    val independentUpdateEvent = Event.create(independentUpdate)
 
     insertEvent.dependsOn(updateEvent)
     updateEvent.dependsOn(anotherUpdateEvent)
@@ -262,6 +263,45 @@ class PublicApiDesignTest(_system: ActorSystem) extends TestKit(_system) with Im
 
 
 
+
+  }
+
+  object EventDataPassing {
+
+    val queryForSongsCount = "SELECT COUNT(*) FROM songs WHERE album_name = 'SnowBiz'"
+
+//    count
+//    -------
+//    12
+//
+//    (1 rows)
+
+    val updateStatementString = "UPDATE artist SET songs_count = :incremented WHERE name = 'Muse'"
+
+
+    private val queryCountSongsEvt: Event = Event.create("query_count",
+                                                         QueryBuilder.select().
+                                                           countAll().
+                                                           from("music", "songs").
+                                                           where(QueryBuilder.eq("album_name", "SnowBiz")))
+
+    trait DataTransformation
+
+    trait DataTransformationFunctionName
+
+    object IncrementIntUnaryFunction extends DataTransformationFunctionName {
+        // TODO def some increment method
+    }
+
+    case class DataTransformationScalarExpression(eventId: String, column: String) extends DataTransformation
+    case class DataTransformationUnaryFunction(funtion: DataTransformationFunctionName, argument: DataTransformation)
+
+
+    val updateEvent: Event = Event(eventId = None,
+                                   st = updateStatementString,
+                                   dependencies = Set(queryCountSongsEvt),
+                                   mappedValues = Map("incremented" -> /* TODO need to work on that */
+                                                      DataTransformationUnaryFunction(IncrementIntUnaryFunction, DataTransformationScalarExpression("query_count", "count"))))
 
   }
 }
