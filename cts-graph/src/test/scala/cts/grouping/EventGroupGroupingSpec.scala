@@ -36,10 +36,20 @@ class EventGroupGroupingSpec extends FreeSpec with Matchers with EventGroupGroup
 
   case class SimpleEventGroupGrouping(maximumEventsLimit: Int) extends Grouping
 
+  def chunkIs(chunk: EventProcessingChunk, partitions: String*): Unit = {
+    val strings: Seq[String] = partitions.toSeq
+    val map: Seq[String] = chunk.egs.flatMap(_.events.map(_.partitionKey))
+    map shouldEqual strings
+  }
+
   "EventGrouping should" - {
 
     val egsWithUniquePartitions = List(DummyEventGroup(Seq("A1", "A2", "A3", "A4")), DummyEventGroup(Seq("B1", "B2")),
                                        DummyEventGroup(Seq("C1")), DummyEventGroup(Seq("D1", "D2")))
+
+    // should have 3 chunks: chunk for A1..A4, chunk with B1,A2,C1, chunk with C1,D2
+    val egsWithOverlappingPartitions = List(DummyEventGroup(Seq("A1", "A2", "A3", "A4")), DummyEventGroup(Seq("B1", "A2")),
+                                       DummyEventGroup(Seq("C1")), DummyEventGroup(Seq("C1", "D2")))
 
     "process EventGroups one by one if maximum events limit is 1" in {
       val grouper = SimpleEventGroupGrouping(1)
@@ -76,6 +86,30 @@ class EventGroupGroupingSpec extends FreeSpec with Matchers with EventGroupGroup
       chunks.head.egs should have size 3
       chunks.tail.head.egs should have size 1
       chunks.tail.head.egs.head.events.head shouldEqual DummyEvent("D1")
+    }
+
+    "chunk when partitions collide and no limit" in {
+      val grouper = SimpleEventGroupGrouping(25)
+      val chunks = grouper.divideIntoChunks(egsWithOverlappingPartitions.toStream).toList
+
+      chunks should have size 3
+      val chunks1: EventProcessingChunk = chunks(0)
+      chunks1.egs should have size 1
+      chunkIs(chunks1, "A1", "A2", "A3", "A4")
+      chunkIs(chunks(1), "B1", "A2", "C1")
+      chunkIs(chunks(2), "C1", "D2")
+    }
+
+    "chunk when partitions collide and limit" in {
+      val egsWithOverlappingPartitionsLimit = List(DummyEventGroup(Seq("A1", "A2", "A3", "A4")), DummyEventGroup(Seq("B1", "A2")),
+                                              DummyEventGroup(Seq("C1")), DummyEventGroup(Seq("F1", "D2")))
+
+      val grouper = SimpleEventGroupGrouping(5)
+      val chunks = grouper.divideIntoChunks(egsWithOverlappingPartitionsLimit.toStream).toList
+
+      chunks should have size 2
+      chunkIs(chunks(0), "A1", "A2", "A3", "A4")
+      chunkIs(chunks(1), "B1", "A2", "C1", "F1", "D2")
     }
   }
 }

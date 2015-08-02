@@ -62,6 +62,10 @@ trait EventGroupGrouping
 
     def divideIntoChunks(eventGroupsStream: Stream[EventGroup]): Stream[EventProcessingChunk] =
     {
+      def willBeBelowLimit(currentCount: Int, eg: EventGroup) = currentCount + eg.events.size <= maximumEventsLimit
+
+      def doNotActOnSamePartitions(partitionKeys: scala.collection.Set[String], newPartitions: Set[String]) = partitionKeys.intersect(newPartitions).isEmpty
+
       if(eventGroupsStream.isEmpty) Stream()
       else {
         var currentCount = 0
@@ -70,7 +74,7 @@ trait EventGroupGrouping
         val chunk: Seq[EventGroup] = eventGroupsStream.takeWhile(eg =>
          {
            val partitionKeysForThatEventGroup = eg.events.map(_.partitionKey).toSet
-           if (currentCount == 0 || (partitionKeys.intersect(partitionKeysForThatEventGroup).isEmpty && currentCount + eg.events.size <= maximumEventsLimit))
+           if (currentCount == 0 || (doNotActOnSamePartitions(partitionKeys, partitionKeysForThatEventGroup) && willBeBelowLimit(currentCount, eg)))
            {
              partitionKeys ++= partitionKeysForThatEventGroup
              currentCount += eg.events.size
