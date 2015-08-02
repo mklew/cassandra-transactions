@@ -46,7 +46,21 @@ object ProjectBuild extends Build {
     libraryDependencies ++= defaultLibraryDependencies
   ) ++ Seq(scalaVersion := scalaV)
 
-  lazy val cts = Project("cts", file(".")) aggregate(ctsServerExt, ctsClientExt, ctsCore, ctsAkkaDeps, ctsGraph)
+  lazy val cts = Project("cts", file(".")) aggregate(cassandra, ctsServerExt, ctsClientExt, ctsCore, ctsAkkaDeps, ctsGraph)
+
+  lazy val cassandra = Project("cassandra-link", file("cassandra-link"), settings = defaultSettings ++ Seq(
+    javaSource in Compile := baseDirectory.value / "src" / "java",
+    autoScalaLibrary := false,
+    resourceDirectory in Compile := baseDirectory.value / "src" / "resources",
+    unmanagedSourceDirectories in Compile += baseDirectory.value / "src" / "gen-java",
+    unmanagedSourceDirectories in Compile += baseDirectory.value / "interface" / "thrift" / "gen-java",
+    unmanagedJars in Compile ++= {
+      val base = baseDirectory.value
+      val baseDirectories = (base / "lib") +++ (base / "build" / "lib" / "jars")
+      val customJars = (baseDirectories ** "*.jar")
+      customJars.classpath
+    }
+  ))
 
   lazy val ctsAkkaDeps = Project("cts-akka-deps", file("cts-akka-deps"), settings = defaultSettings ++ taskDefs)
 
@@ -59,10 +73,10 @@ object ProjectBuild extends Build {
   lazy val ctsServerExt = Project("cts-server-ext",
     file("cts-server-ext"),
     settings = defaultSettings ++ taskDefs
-    ).dependsOn(ctsCore % "compile->compile")
+    ).dependsOn(ctsCore % "compile->compile").dependsOn(cassandra % "compile->compile")
 
   lazy val ctsClientExt = Project("cts-client-ext",
-    file("cts-client-ext"), settings = defaultSettings).dependsOn(ctsServerExt % "compile->compile")
+    file("cts-client-ext"), settings = defaultSettings).dependsOn(ctsCore % "compile->compile")
 
   lazy val ctsExampleMusic = Project("cts-example-music",
                                      file("cts-example-music"),
