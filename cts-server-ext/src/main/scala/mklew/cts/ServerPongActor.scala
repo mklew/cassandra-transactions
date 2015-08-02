@@ -18,27 +18,15 @@
 
 package mklew.cts
 
-import _root_.akka.actor.Props
-import com.typesafe.scalalogging.StrictLogging
-import mklew.cts.cluster.ClusterSeedObserver
+import mklew.cts.events.BaseCtsActor
 
 /**
  * @author Marek Lewandowski <marek.m.lewandowski@gmail.com>
- * @since 13/06/15
+ * @since 02/08/15
  */
-object Boot extends App with StrictLogging with CtsModule
+class ServerPongActor extends BaseCtsActor
 {
-  logger.info(
-    """
-      |  ==============================================
-      |
-      |     Cassandra Transactions seed node starts
-      |
-      |  ==============================================
-    """.stripMargin)
-
-  // Create an Akka system
-  val system = actorSystem
-  // Create an actor that handles cluster domain events
-  system.actorOf(Props[ClusterSeedObserver], name = "clusterObserver")
+  override def receive: Receive = {
+    case Ping(msg) => sender ! Pong("Reply to: " + msg, Ping(msg))
+  }
 }
