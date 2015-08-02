@@ -15,4 +15,4 @@ libraryDependencies ++= Seq(
 
 Keys.fork in run := true
 
-mainClass in (Compile, run) := Some("mklew.cts.ClientBoot")
+mainClass in (Compile, run) := Some("ClientBoot")
