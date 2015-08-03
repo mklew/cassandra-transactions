@@ -48,7 +48,7 @@ object ProjectBuild extends Build {
 
   lazy val cts = Project("cts", file(".")) aggregate(cassandra, ctsServerExt, ctsClientExt, ctsCore, ctsAkkaDeps, ctsGraph)
 
-  lazy val cassandra = Project("cassandra-link", file("cassandra-link"), settings = defaultSettings ++ Seq(
+  lazy val cassandra: sbt.Project = Project("cassandra-link", file("cassandra-link"), settings = defaultSettings ++ Seq(
     javaSource in Compile := baseDirectory.value / "src" / "java",
     autoScalaLibrary := false,
     resourceDirectory in Compile := baseDirectory.value / "src" / "resources",
@@ -70,7 +70,7 @@ object ProjectBuild extends Build {
   lazy val ctsGraph = Project("cts-graph",
     file("cts-graph"), settings = defaultSettings)
 
-  lazy val ctsServerExt = Project("cts-server-ext",
+  lazy val ctsServerExt: sbt.Project = Project("cts-server-ext",
     file("cts-server-ext"),
     settings = defaultSettings ++ taskDefs
     ).dependsOn(ctsCore % "compile->compile").dependsOn(cassandra % "compile->compile")
